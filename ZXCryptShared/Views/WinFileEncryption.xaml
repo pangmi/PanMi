@@ -1,0 +1,203 @@
+﻿<Controls:MetroWindow x:Class="ZXCryptShared.WinFileEncryption"
+                      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                      xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+                      xmlns:i="clr-namespace:System.Windows.Interactivity;assembly=System.Windows.Interactivity"
+                      xmlns:Behaviours="clr-namespace:MahApps.Metro.Behaviours;assembly=MahApps.Metro"
+                      xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
+                      xmlns:Dialog="clr-namespace:MahApps.Metro.Controls.Dialogs;assembly=MahApps.Metro"
+                      xmlns:local="clr-namespace:ZXCryptShared"
+                      Dialog:DialogParticipation.Register="{Binding}"
+                      mc:Ignorable="d"
+                      Icon="../Resources/panda.png" 
+                      WindowStartupLocation="CenterOwner"
+                      ShowTitleBar="True" TitleCaps="False"
+                      Height="320" Width="520"
+                      MinHeight="280" MinWidth="400"
+                      
+                      ShowDialogsOverTitleBar="False"
+                      
+                      BorderThickness="1" 
+                      GlowBrush="{DynamicResource AccentColorBrush}"
+                      ResizeMode="NoResize">
+    <Window.Style>
+        <Style TargetType="Window">
+            <Setter Property="Title" Value="Encrypt File" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Path=Mode, Mode=OneWay}" Value="1">
+                    <Setter Property="Title" Value="Open File" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Path=Mode, Mode=OneWay}" Value="3">
+                    <Setter Property="Title" Value="Decrypt File" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Style>
+
+    <i:Interaction.Behaviors>
+        <!-- required behaviors by MetroWindow -->
+        <Behaviours:BorderlessWindowBehavior />
+        <Behaviours:WindowsSettingBehaviour />
+        <Behaviours:GlowWindowBehavior />
+
+        <local:MetroWindowBehavior CloseWindow="{Binding CloseWindow, Mode=TwoWay}" />
+    </i:Interaction.Behaviors>
+    
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../MahAppMetroResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    
+    <Controls:MetroWindow.IconTemplate>
+        <DataTemplate>
+            <iconPacks:PackIconMaterial Width="{TemplateBinding Width}" Height="{TemplateBinding Height}" Margin="4"
+                                        Kind="Panda" Foreground="{DynamicResource GrayBrush8}" />
+        </DataTemplate>
+    </Controls:MetroWindow.IconTemplate>
+    
+    <Controls:MetroWindow.RightWindowCommands>
+        <Controls:WindowCommands>
+            <Button Click="AboutButton_Click" >
+                <StackPanel Orientation="Horizontal">
+                    <iconPacks:PackIconMaterial Kind="HelpCircle"/>
+                    <TextBlock Margin="4 0 0 0" VerticalAlignment="Center" Text="{Binding Path=AppName}" />
+                </StackPanel>
+            </Button>
+        </Controls:WindowCommands>
+    </Controls:MetroWindow.RightWindowCommands>
+
+    <Grid>
+        <Grid Margin="8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Margin="{StaticResource RowMargin}">
+            </StackPanel>
+
+            <StackPanel Grid.Row="1" Margin="{StaticResource RowMargin}" FocusManager.FocusedElement="{Binding ElementName=passwordBox}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Label Grid.Row="0" Grid.Column="0" Content="File(s) " Margin="{StaticResource ControlMargin}" />
+                    <TextBox Grid.Row="0" Grid.Column="1" IsReadOnly="True" Style="{DynamicResource MetroTextBox}" Margin="{StaticResource ControlMargin}" 
+                             Text="{Binding Path=DisplayFileName, Mode=OneWay}" 
+                             Opacity="0.7" FontStyle="Italic" FontSize="{DynamicResource FloatingWatermarkFontSize}"/>
+
+                    <Controls:ToggleSwitch Grid.Row="1" Grid.Column="1" 
+                                           Margin="{StaticResource ControlMargin}"
+                                           IsChecked="{Binding Path=DeleteOldFile}"
+                                           OnLabel=" Delete Original File"
+                                           OffLabel=" Delete Original File">
+                        <Controls:ToggleSwitch.Style>
+                            <Style TargetType="{x:Type Controls:ToggleSwitch}" BasedOn="{StaticResource ZxToggleSwitchWin10Style}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Path=Mode, Mode=OneWay}" Value="1">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Controls:ToggleSwitch.Style>
+                    </Controls:ToggleSwitch>
+
+                    <Label Grid.Row="2" Grid.Column="0" Margin="{StaticResource ControlMargin}" Content="Password" />
+                    <PasswordBox x:Name="passwordBox" Grid.Row="2" Grid.Column="1" 
+                                 Margin="{StaticResource ControlMargin}"
+                                 Controls:TextBoxHelper.ClearTextButton="{Binding RelativeSource={RelativeSource Self}, Path=(Controls:TextBoxHelper.HasText), Mode=OneWay}"
+                                 Style="{StaticResource MetroButtonRevealedPasswordBox}">
+                        <i:Interaction.Triggers>
+                            <i:EventTrigger EventName="PasswordChanged">
+                                <i:InvokeCommandAction Command="{Binding PwbCmdPassword1Changed}" CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=PasswordBox}}"/>
+                            </i:EventTrigger>
+                        </i:Interaction.Triggers>
+                    </PasswordBox>
+
+                    <Label Grid.Row="3" Grid.Column="0" Margin="{StaticResource ControlMargin}" Content="Repeat Password">
+                        <Label.Style>
+                            <Style TargetType="{x:Type Label}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Path=Mode, Mode=OneWay}" Value="1">  <!-- EncryptionMode.Open -->
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Path=Mode, Mode=OneWay}" Value="3">  <!-- EncryptionMode.Decrypt -->
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Label.Style>
+                    </Label>
+                    <PasswordBox Grid.Row="3" Grid.Column="1" 
+                                 Margin="{StaticResource ControlMargin}"
+                                 Controls:TextBoxHelper.ClearTextButton="{Binding RelativeSource={RelativeSource Self}, Path=(Controls:TextBoxHelper.HasText), Mode=OneWay}">
+                        <PasswordBox.Style>
+                            <Style TargetType="{x:Type PasswordBox}" BasedOn="{StaticResource MetroButtonRevealedPasswordBox}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Path=Mode, Mode=OneWay}" Value="1">  <!-- EncryptionMode.Open -->
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Path=Mode, Mode=OneWay}" Value="3">  <!-- EncryptionMode.Decrypt -->
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </PasswordBox.Style>
+                        <i:Interaction.Triggers>
+                            <i:EventTrigger EventName="PasswordChanged">
+                                <i:InvokeCommandAction Command="{Binding PwbCmdPassword2Changed}" CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=PasswordBox}}"/>
+                            </i:EventTrigger>
+                        </i:Interaction.Triggers>
+                    </PasswordBox>
+
+                    <Label Grid.Row="4" Grid.Column="0" Margin="{StaticResource ControlMargin}" Content="Key File" />
+                    <TextBox Grid.Row="4" Grid.Column="1" Margin="{StaticResource ControlMargin}" Style="{DynamicResource MetroButtonTextBox}"
+                             Controls:TextBoxHelper.ButtonContent="{iconPacks:Material Kind=FolderOpen}"
+                             Controls:TextBoxHelper.ButtonCommand="{Binding TextBtnCmdSelectKeyFile, Mode=OneWay}"
+                             Controls:TextBoxHelper.Watermark="Optional"
+                             Text="{Binding Path=KeyFile, Mode=TwoWay}" />
+                </Grid>
+            </StackPanel>
+
+            <StackPanel Grid.Row="2" Margin="{StaticResource RowMargin}">
+                <Button IsDefault="True"
+                        Margin="{StaticResource ControlMargin}"
+                        Width="48" Height="48" 
+                        Foreground="{DynamicResource ProgressBrush}" 
+                        Command="{Binding BtnCmdOpenEncDecFile}">
+                    <Button.Style>
+                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource ZxCircleButtonStyle}">
+                            <Setter Property="Content" Value="{iconPacks:Material Width=24, Height=24, Kind=Lock}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Path=Mode, Mode=OneWay}" Value="1">
+                                    <Setter Property="Content" Value="{iconPacks:Material Width=24, Height=24, Kind=BookOpenPageVariant}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Path=Mode, Mode=OneWay}" Value="3">
+                                    <Setter Property="Content" Value="{iconPacks:Material Width=24, Height=24, Kind=LockOpen}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Controls:MetroWindow>
