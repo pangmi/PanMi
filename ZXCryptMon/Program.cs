@@ -36,7 +36,7 @@ namespace ZXCryptMon
 
             while (true)
             {
-                Thread.Sleep(2000);
+                Thread.Sleep(6000);
 
                 // remove folders
                 string[] tmpDirs = Directory.GetDirectories(tmpFolder);
@@ -68,8 +68,12 @@ namespace ZXCryptMon
                         FileInfo fi = new FileInfo(file);
                         if (!FileIsLocked(fi))
                         {
-                            fi.IsReadOnly = false;
-                            File.Delete(file);
+                            // if file was created within 30 sec, don't delete because the opening app may be still starting
+                            if (fi.CreationTime < DateTime.Now.AddSeconds(-30.0))
+                            {
+                                fi.IsReadOnly = false;
+                                File.Delete(file);
+                            }
                         }
                     }
                     catch

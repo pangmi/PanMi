@@ -504,7 +504,7 @@ namespace ZXCryptShared
                             }
 
                             if (_dialogCoordinator != null)
-                                await _dialogCoordinator.ShowMessageAsync(this, title: "Exception occurred!", message: ex.Message);
+                                await _dialogCoordinator.ShowMessageAsync(this, title: "Exception!", message: ex.Message);
                         }
                     }
                 });
@@ -710,7 +710,7 @@ namespace ZXCryptShared
                     }
 
                     if (_dialogCoordinator != null)
-                        await _dialogCoordinator.ShowMessageAsync(this, title: "Exception occurred!", message: ex.Message);
+                        await _dialogCoordinator.ShowMessageAsync(this, title: "Exception!", message: ex.Message);
                 }
             }
         });

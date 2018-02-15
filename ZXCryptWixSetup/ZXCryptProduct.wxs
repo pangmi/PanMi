@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:ui="http://schemas.microsoft.com/wix/UIExtension">
+	<Product Id="*" Name="PanMi Tools" Language="1033" Version="1.0.0.0" Manufacturer="PanMi" UpgradeCode="365357f9-e30b-4719-a1a4-0ed6b800bf40">
+		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" InstallPrivileges="elevated" Platform="x64" />
+
+    <Icon Id="Application_Icon" SourceFile="$(var.ZXCryptShared.ProjectDir)Resources\panda.ico" />
+    <Property Id="ARPPRODUCTICON" Value="Application_Icon" />
+    
+    <!-- use built-in setup UI, but skip license dialog -->
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <UI>
+      <UIRef Id="WixUI_InstallDir" />
+      <Publish Dialog="WelcomeDlg"
+               Control="Next"
+               Event="NewDialog"
+               Value="InstallDirDlg"
+               Order="2">1</Publish>
+      <Publish Dialog="InstallDirDlg"
+               Control="Back"
+               Event="NewDialog"
+               Value="WelcomeDlg"
+               Order="2">1</Publish>
+    </UI>
+    
+		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+		<MediaTemplate EmbedCab="yes" />
+
+		<Feature Id="ProductFeature" Title="PanMi Tools Setup" Level="1">
+			<ComponentGroupRef Id="ProductComponents" />
+      
+      <!-- start menu components -->
+      <ComponentGroupRef Id="ProductMenuComponents" />
+		</Feature>
+
+    <InstallExecuteSequence>
+      <Custom Action="CA_Reg_ShellExtension" After="InstallFiles">$C_SRMEXE=3</Custom>
+      <Custom Action="CA_Unreg_ShellExtension" Before="RemoveFiles">$C_SRMEXE=2</Custom>
+    </InstallExecuteSequence>
+    
+	</Product>
+
+  <Fragment>
+    <CustomAction Id="CA_Reg_ShellExtension" FileKey="F_SRMEXE" ExeCommand="install &quot;[INSTALLFOLDER]ZXCryptShellExtension.dll&quot; -codebase" Execute="deferred" Impersonate="no" />
+    <CustomAction Id="CA_Unreg_ShellExtension" FileKey="F_SRMEXE" ExeCommand="uninstall &quot;[INSTALLFOLDER]ZXCryptShellExtension.dll&quot;" Execute="deferred" Impersonate="no" />
+  </Fragment>
+  
+	<Fragment>
+		<Directory Id="TARGETDIR" Name="SourceDir">
+			<Directory Id="ProgramFiles64Folder">
+				<Directory Id="INSTALLFOLDER" Name="PanMi Tools" />
+			</Directory>
+
+      <!-- start menu folder -->
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="PanMi Tools"/>
+      </Directory>
+    </Directory>
+	</Fragment>
+
+	<Fragment>
+		<ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Component Id="C_AppLogo_Icon" Win64="yes" Guid="9AF1394A-CC08-4D68-AE28-4E2C04EEF743">
+        <File Id="F_AppLogo_Icon" Source="$(var.ZXCryptShared.ProjectDir)Resources\panda.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="C_ZXCryptApp_EXE" Win64="yes" Guid="84EAD225-1444-46B8-A417-D0F96E82EE92">
+        <File Id="F_ZXCryptApp_EXE" Source="$(var.ZXCryptApp.TargetPath)" KeyPath="yes" />
+        <ProgId Id="ZXCrypt.pxxfile" Description="PanMi Encrypted File" Icon="F_AppLogo_Icon">
+          <Extension Id="pxx" ContentType="application/pxx">
+            <Verb Id="open" Command="Open" TargetFile="F_ZXCryptApp_EXE" Argument='1 "%1"' />
+          </Extension>
+        </ProgId>
+      </Component>
+      <Component Id="C_ZXCryptApp_Config" Win64="yes" Guid="0B45E7D9-0C09-417D-866D-273B401C94F4">
+        <File Id="F_ZXCryptApp_Config" Source="$(var.ZXCryptApp.TargetPath).config" KeyPath="yes" />
+      </Component>
+      <Component Id="Apex.WinForms.dll" Win64="yes" Guid="236F037A-25CA-4F6F-B5F4-5B0DC73722CA">
+        <File Id="Apex.WinForms.dll" Source="$(var.ZXCryptApp.TargetDir)Apex.WinForms.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="MahApps.Metro.dll" Win64="yes" Guid="7EAA8B22-1663-4B70-B418-2DA887E362BD">
+        <File Id="MahApps.Metro.dll" Source="$(var.ZXCryptApp.TargetDir)MahApps.Metro.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="MahApps.Metro.IconPacks.dll" Win64="yes" Guid="DE0C15D6-4123-430C-8851-C4D10E735784">
+        <File Id="MahApps.Metro.IconPacks.dll" Source="$(var.ZXCryptApp.TargetDir)MahApps.Metro.IconPacks.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Microsoft.WindowsAPICodePack.dll" Win64="yes" Guid="EC53553C-08AB-4952-AA39-ACD1385635AB">
+        <File Id="Microsoft.WindowsAPICodePack.dll" Source="$(var.ZXCryptApp.TargetDir)Microsoft.WindowsAPICodePack.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Microsoft.WindowsAPICodePack.Shell.DLL" Win64="yes" Guid="D1774600-F283-4ACF-B21B-4600162DD372">
+        <File Id="Microsoft.WindowsAPICodePack.Shell.DLL" Source="$(var.ZXCryptApp.TargetDir)Microsoft.WindowsAPICodePack.Shell.DLL" KeyPath="yes" />
+      </Component>
+      <Component Id="Microsoft.WindowsAPICodePack.ShellExtensions.dll" Win64="yes" Guid="30922485-8798-4B32-B528-58D241E4FA3E">
+        <File Id="Microsoft.WindowsAPICodePack.ShellExtensions.dll" Source="$(var.ZXCryptApp.TargetDir)Microsoft.WindowsAPICodePack.ShellExtensions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="System.Windows.Interactivity.DLL" Win64="yes" Guid="ADC7E83F-6997-4865-8BFF-BD7499E76940">
+        <File Id="System.Windows.Interactivity.DLL" Source="$(var.ZXCryptApp.TargetDir)System.Windows.Interactivity.DLL" KeyPath="yes" />
+      </Component>
+
+      <Component Id="ZXCryptShellExtension.dll" Win64="yes" Guid="C1CA429C-C139-4552-A58C-02DF4B491414">
+        <File Id="ZXCryptShellExtension.dll" Source="$(var.ZXCryptShellExtension.TargetPath)" KeyPath="yes" />
+      </Component>
+      <Component Id="SharpShell.dll" Win64="yes" Guid="7DE33398-6359-4649-B8C5-07A72B42BC91">
+        <File Id="SharpShell.dll" Source="$(var.ZXCryptShellExtension.TargetDir)SharpShell.dll" KeyPath="yes" />
+      </Component>
+
+      <Component Id="ZXCryptShared.DLL" Win64="yes" Guid="9A78A99B-C35D-4AEC-AE76-E2B48A429F31">
+        <File Id="ZXCryptShared.DLL" Source="$(var.ZXCryptShared.TargetPath)" KeyPath="yes" />
+      </Component>
+
+      <Component Id="ZXEncryption.DLL" Win64="yes" Guid="828D56C2-A4FB-4295-99F7-863433806876">
+        <File Id="ZXEncryption.DLL" Source="$(var.ZXEncryption.TargetPath)" KeyPath="yes" />
+      </Component>
+
+      <Component Id="ZXCryptMon.exe" Win64="yes" Guid="835B33C9-6BD3-4093-A9D7-D732FF3A42B2">
+        <File Id="ZXCryptMon.exe" Source="$(var.ZXCryptMon.TargetPath)" KeyPath="yes" />
+      </Component>
+
+      <Component Id="ZXCryptMon.exe.config" Win64="yes" Guid="24AF7438-04C4-4B96-9DDF-DEAA5B9BA32B">
+        <File Id="ZXCryptMon.exe.config" Source="$(var.ZXCryptMon.TargetPath).config" KeyPath="yes" />
+      </Component>
+
+      <Component Id="C_SRMEXE" Win64="yes" Guid="2000C492-092B-4855-B091-2A7E50C69E35">
+        <File Id="F_SRMEXE" Source="..\packages\SharpShellTools.2.2.0.0\lib\srm.exe" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- start menu components -->
+    <ComponentGroup Id="ProductMenuComponents" Directory="ApplicationProgramsFolder">
+      <Component Id="ApplicationShortcut" Guid="5244EBB8-DDD1-4D5E-9240-C80FE24002F0" >
+        <Shortcut Id="ApplicationStartMenuShortcut"
+                  Name="PanMi File Cryptor"
+                  Description="PanMi File Encryption Decryption Application"
+                  Target="[#F_ZXCryptApp_EXE]"
+                  WorkingDirectory="APPLICATIONROOTDIRECTORY"
+                  Icon="Application_Icon" />
+        <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
+        <RegistryValue Root="HKCU"
+                       Key="Software\PanMi\PanMi Tools"
+                       Name="installed" Type="integer" Value="1"
+                       KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+    
+	</Fragment>
+</Wix>
