@@ -57,7 +57,7 @@
             <Border Grid.Row="4" Margin="20,16,20,16" BorderThickness="1" BorderBrush="{DynamicResource AccentColorBrush}">
                 <StackPanel Margin="8">
                     <TextBlock FontFamily="{DynamicResource ContentFontFamily}" Margin="0 0 0 4" TextWrapping="WrapWithOverflow"
-                               Text="Windows shell extensions and applications for file encryption and decryption with Advanced Encryption Standard (AES)" />
+                               Text="Windows shell extensions and applications for file encryption with Authenticated Encryption (Encrypt-then-MAC, or AES-then-HMAC)." />
                </StackPanel>
             </Border>
         </Grid>

@@ -24,5 +24,5 @@ using System.Reflection;
 // We hard-code the assembly verion for every major version. That way we can drop single files into an install.
 // This will be overwritten by the build script with the appropriate build version.
 
-[assembly: AssemblyVersion("1.0.1.0")]
-[assembly: AssemblyFileVersion("1.0.1.0")]
+[assembly: AssemblyVersion("1.0.2.0")]
+[assembly: AssemblyFileVersion("1.0.2.0")]

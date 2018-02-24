@@ -132,11 +132,16 @@
                   Target="[#F_ZXCryptApp_EXE]"
                   WorkingDirectory="APPLICATIONROOTDIRECTORY"
                   Icon="Application_Icon" />
+
+        <!-- Add the uninstall shortcut -->
+        <Shortcut Id="UninstallProduct"
+                  Name="Uninstall PanMi Tools"
+                  Description="Uninstalls PanMi Tools"
+                  Target="[System64Folder]msiexec.exe"
+                  Arguments="/x [ProductCode]" />
+        
         <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
-        <RegistryValue Root="HKCU"
-                       Key="Software\PanMi\PanMi Tools"
-                       Name="installed" Type="integer" Value="1"
-                       KeyPath="yes" />
+        <RegistryValue Root="HKCU" Key="Software\PanMi\PanMi Tools" Name="installed" Type="integer" Value="1" KeyPath="yes" />
       </Component>
     </ComponentGroup>
     

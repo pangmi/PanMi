@@ -43,7 +43,7 @@ namespace ZXCryptShared
             get
             {
                 var ver = Assembly.GetExecutingAssembly().GetName().Version;
-                string result = String.Format("{0}.{1}", ver.Major, ver.Minor);
+                string result = String.Format("{0}.{1}.{2}", ver.Major, ver.Minor, ver.Build);
                 return result;
             }
         }

@@ -20,8 +20,8 @@ namespace ZXEncryption
         {
             try
             {
-                AesCryptography aesCryptor = new AesCryptography();
-                aesCryptor.EncryptFile(inputFile, outputFile, passcode);
+                EtmCryptography crypt = new EtmCryptography();
+                crypt.EncryptFile(inputFile, outputFile, passcode);
             }
             catch (Exception ex)
             {
@@ -33,8 +33,8 @@ namespace ZXEncryption
         {
             try
             {
-                AesCryptography aesCryptor = new AesCryptography();
-                aesCryptor.DecryptFile(inputFile, outputFile, passcode);
+                EtmCryptography crypt = new EtmCryptography();
+                crypt.DecryptFile(inputFile, outputFile, passcode);
             }
             catch (Exception ex)
             {
