@@ -28,6 +28,8 @@ namespace ZXCryptShellExtension
     [Guid("47AE0FCB-4246-4D32-AC49-5A6E573BDE55")]
     [ComVisible(true)]
     [COMServerAssociation(AssociationType.AllFiles)]
+    [COMServerAssociation(AssociationType.Directory)]
+    [COMServerAssociation(AssociationType.Class, @"Directory\Background")]
     public class ZXCryptContextMenu : SharpContextMenu
     {
         private const string APP_NAME = "PanMi";
@@ -46,57 +48,15 @@ namespace ZXCryptShellExtension
 
         protected override bool CanShowMenu()
         {
-            if (SelectedItemPaths.Count() == 0)
-                return false;
-
-            FileAttributes attr = File.GetAttributes(SelectedItemPaths.First());
-            if (attr.HasFlag(FileAttributes.Directory))
-                return false;
-
             UpdateMenu();
             return true;
         }
 
         protected override ContextMenuStrip CreateMenu()
         {
-            // Get bitmaps for menu items
-            if (_bmpMainMenu == null)
-            {
-                var canvas = XamlReader.Parse(Properties.Resources.appbar_panda) as Canvas;
-                _bmpMainMenu = ConvertCanvasToBitmap(canvas);
-            }
-            if (_bmpLock == null)
-            {
-                var canvas = XamlReader.Parse(Properties.Resources.appbar_lock) as Canvas;
-                _bmpLock = ConvertCanvasToBitmap(canvas);
-            }
-            if (_bmpKeyFile == null)
-            {
-                var canvas = XamlReader.Parse(Properties.Resources.appbar_key) as Canvas;
-                _bmpKeyFile = ConvertCanvasToBitmap(canvas);
-            }
-            if (_bmpAbout == null)
-            {
-                var canvas = XamlReader.Parse(Properties.Resources.appbar_question) as Canvas;
-                _bmpAbout = ConvertCanvasToBitmap(canvas);
-            }
-            if (_bmpOpen == null)
-            {
-                var canvas = XamlReader.Parse(Properties.Resources.appbar_book_open_writing) as Canvas;
-                _bmpOpen = ConvertCanvasToBitmap(canvas);
-            }
-            if (_bmpUnlock == null)
-            {
-                var canvas = XamlReader.Parse(Properties.Resources.appbar_unlock) as Canvas;
-                _bmpUnlock = ConvertCanvasToBitmap(canvas);
-            }
+            CreateBitmapsForMenuItems();
 
-            bool isEncryption = true;
-            string fileExt = Path.GetExtension(SelectedItemPaths.First());
-            if (String.Compare(fileExt, ".pxx", StringComparison.CurrentCultureIgnoreCase) == 0)
-            {
-                isEncryption = false;
-            }
+            int mode = GetMenuOption();
 
             ToolStripMenuItem mainMenu = new ToolStripMenuItem
             {
@@ -105,29 +65,21 @@ namespace ZXCryptShellExtension
                 ImageScaling = ToolStripItemImageScaling.SizeToFit,
             };
 
-            if (isEncryption)
-            {
-                var subMenu1 = new ToolStripMenuItem
-                {
-                    Text = "Encrypt",
-                    Image = _bmpLock,
-                    ImageScaling = ToolStripItemImageScaling.SizeToFit
-                };
-                subMenu1.Click += (sender, args) => ProcessFiles(SelectedItemPaths, EncryptionMode.Encrypt);
-                mainMenu.DropDownItems.Add(subMenu1);
-            }
-            else
+            if ((mode & 2) == 2)
             {
                 var subMenu1 = new ToolStripMenuItem
                 {
                     Text = "Open",
                     Image = _bmpOpen,
-                    ImageScaling = ToolStripItemImageScaling.SizeToFit
+                    ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                    Enabled = false
                 };
-                subMenu1.Click += (sender, args) => ProcessFiles(SelectedItemPaths, EncryptionMode.Open);
-                if (SelectedItemPaths.Count() != 1)
+                subMenu1.Click += (sender, args) => ProcessFiles(EncryptionMode.Open);
+                if (SelectedItemPaths.Count() == 1)
                 {
-                    subMenu1.Enabled = false;
+                    FileAttributes attr = File.GetAttributes(SelectedItemPaths.First());
+                    if (!attr.HasFlag(FileAttributes.Directory))
+                        subMenu1.Enabled = true;
                 }
                 mainMenu.DropDownItems.Add(subMenu1);
 
@@ -137,20 +89,25 @@ namespace ZXCryptShellExtension
                     Image = _bmpUnlock,
                     ImageScaling = ToolStripItemImageScaling.SizeToFit
                 };
-                subMenu2.Click += (sender, args) => ProcessFiles(SelectedItemPaths, EncryptionMode.Decrypt);
+                subMenu2.Click += (sender, args) => ProcessFiles(EncryptionMode.Decrypt);
                 mainMenu.DropDownItems.Add(subMenu2);
 
-                var subMenu3 = new ToolStripMenuItem
+            }
+
+            if ((mode & 1) == 1)
+            {
+                var subMenu1 = new ToolStripMenuItem
                 {
                     Text = "Encrypt",
                     Image = _bmpLock,
                     ImageScaling = ToolStripItemImageScaling.SizeToFit
                 };
-                subMenu3.Click += (sender, args) => ProcessFiles(SelectedItemPaths, EncryptionMode.Encrypt);
-                mainMenu.DropDownItems.Add(subMenu3);
-
-                mainMenu.DropDownItems.Add(new ToolStripSeparator());
+                subMenu1.Click += (sender, args) => ProcessFiles(EncryptionMode.Encrypt);
+                mainMenu.DropDownItems.Add(subMenu1);
             }
+
+            if (mode != 0)
+                mainMenu.DropDownItems.Add(new ToolStripSeparator());
 
             var subMenu4 = new ToolStripMenuItem
             {
@@ -224,7 +181,77 @@ namespace ZXCryptShellExtension
             return bmp;
         }
 
-        private void ProcessFiles(IEnumerable<string> selectedItemPaths, EncryptionMode mode)
+        private void CreateBitmapsForMenuItems()
+        {
+            // Get bitmaps for menu items
+            if (_bmpMainMenu == null)
+            {
+                var canvas = XamlReader.Parse(Properties.Resources.appbar_panda) as Canvas;
+                _bmpMainMenu = ConvertCanvasToBitmap(canvas);
+            }
+            if (_bmpLock == null)
+            {
+                var canvas = XamlReader.Parse(Properties.Resources.appbar_lock) as Canvas;
+                _bmpLock = ConvertCanvasToBitmap(canvas);
+            }
+            if (_bmpKeyFile == null)
+            {
+                var canvas = XamlReader.Parse(Properties.Resources.appbar_key) as Canvas;
+                _bmpKeyFile = ConvertCanvasToBitmap(canvas);
+            }
+            if (_bmpAbout == null)
+            {
+                var canvas = XamlReader.Parse(Properties.Resources.appbar_question) as Canvas;
+                _bmpAbout = ConvertCanvasToBitmap(canvas);
+            }
+            if (_bmpOpen == null)
+            {
+                var canvas = XamlReader.Parse(Properties.Resources.appbar_book_open_writing) as Canvas;
+                _bmpOpen = ConvertCanvasToBitmap(canvas);
+            }
+            if (_bmpUnlock == null)
+            {
+                var canvas = XamlReader.Parse(Properties.Resources.appbar_unlock) as Canvas;
+                _bmpUnlock = ConvertCanvasToBitmap(canvas);
+            }
+        }
+
+        /// <summary>
+        /// Decide which menu items to display
+        /// </summary>
+        /// <returns>1: encrypt menu item; 2: decrypt items; 3: both encrypt/decrypt menu items</returns>
+        private int GetMenuOption()
+        {
+            // user right-clicked on the current folder background, so no file was selected. In this case, user can
+            // either encrypt or decrypt all files in current folder
+            if (SelectedItemPaths.Count() == 0)
+                return 3;
+
+            int mode = 0;
+            foreach (string file in SelectedItemPaths)
+            {
+                // when one or more folders were selected, user can either encrypt or decrypt all files in the selected folder(s)
+                FileAttributes attr = File.GetAttributes(file);
+                if (attr.HasFlag(FileAttributes.Directory))
+                {
+                    mode = 3;
+                    break;
+                }
+
+                string fileExt = Path.GetExtension(file);
+                if (String.Compare(fileExt, ".pxx", StringComparison.CurrentCultureIgnoreCase) == 0)
+                    mode |= 2;
+                else
+                    mode |= 1;
+
+                if (mode == 3)
+                    break;
+            }
+
+            return mode;
+        }
+
+        private void ProcessFiles(EncryptionMode mode)
         {
             try
             {
@@ -232,12 +259,23 @@ namespace ZXCryptShellExtension
                 StringBuilder sb = new StringBuilder();
                 sb.Append(mode);
                 sb.Append(space);
-                foreach (string file in selectedItemPaths)
+
+                if (SelectedItemPaths.Count() > 0)
                 {
+                    foreach (string file in SelectedItemPaths)
+                    {
+                        sb.Append("\"");
+                        sb.Append(file);
+                        sb.Append("\"");
+                        sb.Append(space);
+                    }
+                }
+                else
+                {
+                    // if no file selected (user right-click in the foler background), add the folder
                     sb.Append("\"");
-                    sb.Append(file);
+                    sb.Append(FolderPath);
                     sb.Append("\"");
-                    sb.Append(space);
                 }
 
                 string dllPath = new Uri(Assembly.GetExecutingAssembly().CodeBase).LocalPath;

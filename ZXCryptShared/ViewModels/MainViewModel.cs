@@ -393,59 +393,20 @@ namespace ZXCryptShared
                             }
 
                             // open/encrypt/decrypt file
-                            IZXCryptor cryptor = new ZXCryptor();
                             foreach (string file in FileList)
                             {
                                 if (Mode == EncryptionMode.Encrypt)
                                 {
-                                    string outfile = file + _encryptedFileExt;
-                                    try
-                                    {
-                                        cryptor.EncryptFile(file, outfile, passcode);
-                                    }
-                                    catch
-                                    {
-                                        if (File.Exists(outfile))  { File.Delete(outfile); }
-                                        throw;
-                                    }
-
-                                    if (DeleteOldFile)
-                                    {
-                                        FileInfo fi = new FileInfo(file);
-                                        fi.IsReadOnly = false;
-
-                                        // permanent delete is not possible, see https://stackoverflow.com/questions/38935535/is-overwriting-a-file-multiple-times-enough-to-erase-its-data
-                                        File.Delete(file);
-                                    }
+                                    EncryptFileOrFolder(file, passcode);
                                 }
                                 else if (Mode == EncryptionMode.Decrypt)
                                 {
-                                    // check file extension
-                                    if (!Equals(Path.GetExtension(file), _encryptedFileExt))
-                                        continue;
-
-                                    string outfile = Path.Combine(Path.GetDirectoryName(file), Path.GetFileNameWithoutExtension(file));
-                                    try
-                                    {
-                                        cryptor.DecryptFile(file, outfile, passcode);
-                                    }
-                                    catch
-                                    {
-                                        if (File.Exists(outfile)) { File.Delete(outfile); }
-                                        throw;
-                                    }
-
-                                    if (DeleteOldFile)
-                                    {
-                                        FileInfo fi = new FileInfo(file);
-                                        fi.IsReadOnly = false;
-                                        File.Delete(file);
-                                    }
+                                    DecryptFileOrFolder(file, passcode);
                                 }
                                 else if (Mode == EncryptionMode.Open)
                                 {
                                     // check file extension
-                                    if (!Equals(Path.GetExtension(file), _encryptedFileExt))
+                                    if (String.Compare(Path.GetExtension(file), _encryptedFileExt, StringComparison.CurrentCultureIgnoreCase) != 0)
                                         break;
 
                                     string tmpFolder = Path.GetTempPath() + "zxcrypt\\";
@@ -453,6 +414,7 @@ namespace ZXCryptShared
                                     string outfile = Path.Combine(tmpFolder, Path.GetFileNameWithoutExtension(file));
                                     try
                                     {
+                                        IZXCryptor cryptor = new ZXCryptor();
                                         cryptor.DecryptFile(file, outfile, passcode);
 
                                         // open file
@@ -717,6 +679,8 @@ namespace ZXCryptShared
 
         #endregion
 
+        #region Private functions
+
         private SymmetricAlgorithm CreateAlgorithm(Type symmetricAlgorithmType)
         {
             SymmetricAlgorithm algorithm = null;
@@ -782,5 +746,101 @@ namespace ZXCryptShared
                 output[lena + j] = b[j];
             return output;
         }
+
+        /// <summary>
+        /// Encrypt a single file or all files in a folder
+        /// </summary>
+        /// <param name="filePath">full path of a file or folder</param>
+        /// <param name="passcode">password to encrypt</param>
+        private void EncryptFileOrFolder(string filePath, byte[] passcode)
+        {
+            List<string> allFiles = new List<string>();
+
+            FileAttributes attr = File.GetAttributes(filePath);
+            if (!attr.HasFlag(FileAttributes.Directory))
+                allFiles.Add(filePath);
+            else
+            {
+                string[] files = Directory.GetFiles(filePath, "*", SearchOption.AllDirectories);
+                if (files.Length > 0)
+                    allFiles.AddRange(files);
+            }
+
+            IZXCryptor cryptor = new ZXCryptor();
+            foreach (string file in allFiles)
+            {
+                string fileExt = Path.GetExtension(file);
+                if (String.Compare(fileExt, _encryptedFileExt, StringComparison.CurrentCultureIgnoreCase) == 0)    // skip encrypted files
+                   continue;
+
+                string outfile = file + _encryptedFileExt;
+                try
+                {
+                    cryptor.EncryptFile(file, outfile, passcode);
+                }
+                catch
+                {
+                    if (File.Exists(outfile)) { File.Delete(outfile); }
+                    throw;
+                }
+
+                if (DeleteOldFile)
+                {
+                    FileInfo fi = new FileInfo(file);
+                    fi.IsReadOnly = false;
+
+                    // permanent delete is not possible, see https://stackoverflow.com/questions/38935535/is-overwriting-a-file-multiple-times-enough-to-erase-its-data
+                    File.Delete(file);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Decrypt a single file or all files in a folder
+        /// </summary>
+        /// <param name="filePath">full path of a file or folder</param>
+        /// <param name="passcode">password to decrypt</param>
+        private void DecryptFileOrFolder(string filePath, byte[] passcode)
+        {
+            List<string> allFiles = new List<string>();
+
+            FileAttributes attr = File.GetAttributes(filePath);
+            if (!attr.HasFlag(FileAttributes.Directory))
+                allFiles.Add(filePath);
+            else
+            {
+                string[] files = Directory.GetFiles(filePath, "*", SearchOption.AllDirectories);
+                if (files.Length > 0)
+                    allFiles.AddRange(files);
+            }
+
+            IZXCryptor cryptor = new ZXCryptor();
+            foreach (string file in allFiles)
+            {
+                string fileExt = Path.GetExtension(file);
+                if (String.Compare(fileExt, _encryptedFileExt, StringComparison.CurrentCultureIgnoreCase) != 0)    // skip un-encrypted files
+                    continue;
+
+                string outfile = Path.Combine(Path.GetDirectoryName(file), Path.GetFileNameWithoutExtension(file));
+                try
+                {
+                    cryptor.DecryptFile(file, outfile, passcode);
+                }
+                catch
+                {
+                    if (File.Exists(outfile)) { File.Delete(outfile); }
+                    throw;
+                }
+
+                if (DeleteOldFile)
+                {
+                    FileInfo fi = new FileInfo(file);
+                    fi.IsReadOnly = false;
+                    File.Delete(file);
+                }
+            }
+        }
+
+        #endregion
     }
 }
