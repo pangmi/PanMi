@@ -29,5 +29,5 @@ By default, the encrypted file has an extension of ".pxx". Double-click on a enc
 
 ### Credit
 The following open source projects are used:
-- [SharpSHell](https://github.com/dwmkerr/sharpshell)
+- [SharpShell](https://github.com/dwmkerr/sharpshell)
 - [MahApps.Metro](https://github.com/MahApps/MahApps.Metro)
