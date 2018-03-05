@@ -84,11 +84,11 @@
                     <Label Grid.Row="0" Grid.Column="0" Margin="{StaticResource ControlMargin}" Content="Input File" />
                     <TextBox x:Name="inputFile" Grid.Row="0" Grid.Column="1" Margin="{StaticResource ControlMargin}" Style="{DynamicResource MetroButtonTextBox}"
                              Controls:TextBoxHelper.ButtonContent="{iconPacks:Material Kind=FolderOpen}"
-                             Controls:TextBoxHelper.ButtonCommand="{Binding TextBtnCmdSelectInputFile, Mode=OneWay}"
+                             Controls:TextBoxHelper.ButtonCommand="{Binding CmdSelectInputFile, Mode=OneWay}"
                              Text="{Binding Path=InputFile, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                         <i:Interaction.Triggers>
                             <i:EventTrigger EventName="TextChanged">
-                                <i:InvokeCommandAction Command="{Binding TextCmdInputFileChanged}" />
+                                <i:InvokeCommandAction Command="{Binding CmdInputFileChanged}" />
                             </i:EventTrigger>
                         </i:Interaction.Triggers>
                     </TextBox>
@@ -111,7 +111,7 @@
                     </TextBlock>
                     <TextBox Grid.Row="1" Grid.Column="1" Margin="{StaticResource ControlMargin}" Style="{DynamicResource MetroButtonTextBox}"
                              Controls:TextBoxHelper.ButtonContent="{iconPacks:Modern Kind=FolderEllipsis}"
-                             Controls:TextBoxHelper.ButtonCommand="{Binding TextBtnCmdSelectOutputDir, Mode=OneWay}"
+                             Controls:TextBoxHelper.ButtonCommand="{Binding CmdSelectOutputDir, Mode=OneWay}"
                              Text="{Binding Path=OutputDir, Mode=TwoWay}" />
 
                     <Controls:ToggleSwitch Grid.Row="2" Grid.Column="1"
@@ -128,7 +128,7 @@
                                  Style="{StaticResource MetroButtonRevealedPasswordBox}">
                         <i:Interaction.Triggers>
                             <i:EventTrigger EventName="PasswordChanged">
-                                <i:InvokeCommandAction Command="{Binding PwbCmdPassword1Changed}" CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=PasswordBox}}"/>
+                                <i:InvokeCommandAction Command="{Binding CmdPassword1Changed}" CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=PasswordBox}}"/>
                             </i:EventTrigger>
                         </i:Interaction.Triggers>
                     </PasswordBox>
@@ -142,7 +142,7 @@
                                  Visibility="{Binding Path=IsEncryption, Converter={StaticResource btv}}">
                         <i:Interaction.Triggers>
                             <i:EventTrigger EventName="PasswordChanged">
-                                <i:InvokeCommandAction Command="{Binding PwbCmdPassword2Changed}" CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=PasswordBox}}"/>
+                                <i:InvokeCommandAction Command="{Binding CmdPassword2Changed}" CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=PasswordBox}}"/>
                             </i:EventTrigger>
                         </i:Interaction.Triggers>
                     </PasswordBox>
@@ -150,7 +150,7 @@
                     <Label Grid.Row="5" Grid.Column="0" Margin="{StaticResource ControlMargin}" Content="Key File" />
                     <TextBox Grid.Row="5" Grid.Column="1" Margin="{StaticResource ControlMargin}" Style="{DynamicResource MetroButtonTextBox}"
                              Controls:TextBoxHelper.ButtonContent="{iconPacks:Material Kind=FolderOpen}"
-                             Controls:TextBoxHelper.ButtonCommand="{Binding TextBtnCmdSelectKeyFile, Mode=OneWay}"
+                             Controls:TextBoxHelper.ButtonCommand="{Binding CmdSelectKeyFile, Mode=OneWay}"
                              Controls:TextBoxHelper.Watermark="Optional"
                              Text="{Binding Path=KeyFile, Mode=TwoWay}" />
 
@@ -162,7 +162,7 @@
                         Margin="{StaticResource ControlMargin}"
                         Width="48" Height="48" 
                         Foreground="{DynamicResource ProgressBrush}" 
-                        Command="{Binding BtnCmdCryptFile}">
+                        Command="{Binding CmdCryptFile}">
                     <Button.Style>
                         <Style TargetType="{x:Type Button}" BasedOn="{StaticResource ZxCircleButtonStyle}">
                             <Setter Property="Content" Value="{iconPacks:Material Width=24, Height=24, Kind=Lock}" />

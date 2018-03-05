@@ -70,7 +70,7 @@
                 <TextBox Name="txtKeyValue" IsReadOnly="True" VerticalContentAlignment="Center" 
                          Margin="{StaticResource ControlMargin}" 
                          Controls:TextBoxHelper.ButtonContent="{iconPacks:Material Kind=KeyChange}"
-                         Controls:TextBoxHelper.ButtonCommand="{Binding TextBtnCmdGenerateKey, Mode=OneWay}"
+                         Controls:TextBoxHelper.ButtonCommand="{Binding CmdGenerateKey, Mode=OneWay}"
                          Controls:TextBoxHelper.ButtonCommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type Controls:MetroWindow}}}"
                          Controls:TextBoxHelper.Watermark="Key"
                          Style="{DynamicResource MetroButtonTextBox}"
@@ -81,7 +81,7 @@
                         Width="50" Height="50" 
                         Style="{DynamicResource ZxCircleButtonStyle}"
                         Foreground="{DynamicResource ProgressBrush}" 
-                        Command="{Binding BtnCmdSaveKeyFile}"
+                        Command="{Binding CmdSaveKeyFile}"
                         Content="{iconPacks:Material Width=20, Height=20, Kind=ContentSave}" />
             </StackPanel>
          </Grid>

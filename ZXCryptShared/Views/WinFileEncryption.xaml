@@ -14,7 +14,7 @@
                       Icon="../Resources/panda.png" 
                       WindowStartupLocation="CenterOwner"
                       ShowTitleBar="True" TitleCaps="False"
-                      Height="320" Width="520"
+                      Height="330" Width="540"
                       MinHeight="280" MinWidth="400"
                       
                       ShowDialogsOverTitleBar="False"
@@ -72,12 +72,13 @@
     </Controls:MetroWindow.RightWindowCommands>
 
     <Grid>
-        <Grid Margin="8">
+        <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto"/>
                 <RowDefinition Height="auto"/>
                 <RowDefinition Height="auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="auto"/>
             </Grid.RowDefinitions>
 
             <StackPanel Grid.Row="0" Margin="{StaticResource RowMargin}">
@@ -126,7 +127,7 @@
                                  Style="{StaticResource MetroButtonRevealedPasswordBox}">
                         <i:Interaction.Triggers>
                             <i:EventTrigger EventName="PasswordChanged">
-                                <i:InvokeCommandAction Command="{Binding PwbCmdPassword1Changed}" CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=PasswordBox}}"/>
+                                <i:InvokeCommandAction Command="{Binding CmdPassword1Changed}" CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=PasswordBox}}"/>
                             </i:EventTrigger>
                         </i:Interaction.Triggers>
                     </PasswordBox>
@@ -162,7 +163,7 @@
                         </PasswordBox.Style>
                         <i:Interaction.Triggers>
                             <i:EventTrigger EventName="PasswordChanged">
-                                <i:InvokeCommandAction Command="{Binding PwbCmdPassword2Changed}" CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=PasswordBox}}"/>
+                                <i:InvokeCommandAction Command="{Binding CmdPassword2Changed}" CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=PasswordBox}}"/>
                             </i:EventTrigger>
                         </i:Interaction.Triggers>
                     </PasswordBox>
@@ -170,7 +171,7 @@
                     <Label Grid.Row="4" Grid.Column="0" Margin="{StaticResource ControlMargin}" Content="Key File" />
                     <TextBox Grid.Row="4" Grid.Column="1" Margin="{StaticResource ControlMargin}" Style="{DynamicResource MetroButtonTextBox}"
                              Controls:TextBoxHelper.ButtonContent="{iconPacks:Material Kind=FolderOpen}"
-                             Controls:TextBoxHelper.ButtonCommand="{Binding TextBtnCmdSelectKeyFile, Mode=OneWay}"
+                             Controls:TextBoxHelper.ButtonCommand="{Binding CmdSelectKeyFile, Mode=OneWay}"
                              Controls:TextBoxHelper.Watermark="Optional"
                              Text="{Binding Path=KeyFile, Mode=TwoWay}" />
                 </Grid>
@@ -181,7 +182,7 @@
                         Margin="{StaticResource ControlMargin}"
                         Width="48" Height="48" 
                         Foreground="{DynamicResource ProgressBrush}" 
-                        Command="{Binding BtnCmdOpenEncDecFile}">
+                        Command="{Binding CmdOpenEncDecFile}">
                     <Button.Style>
                         <Style TargetType="{x:Type Button}" BasedOn="{StaticResource ZxCircleButtonStyle}">
                             <Setter Property="Content" Value="{iconPacks:Material Width=24, Height=24, Kind=Lock}" />
@@ -198,6 +199,15 @@
 
                 </Button>
             </StackPanel>
+
+            <StatusBar Grid.Row="4">
+                <StatusBarItem>
+                    <Controls:ProgressRing Width="20" Height="20" 
+                                           Foreground="{DynamicResource IdealForegroundColorBrush}" 
+                                           IsActive="{Binding Path=CmdOpenEncDecFile.IsExecuting}" />
+                </StatusBarItem>
+                <StatusBarItem Margin="10 0 0 0" Content="{Binding Path=CurrentProcessingFile, Mode=OneWay}" />
+            </StatusBar>
         </Grid>
     </Grid>
 </Controls:MetroWindow>

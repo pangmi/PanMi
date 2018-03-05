@@ -12,21 +12,30 @@ using System.Security.Cryptography;
 using System.Windows.Controls;
 using System.Diagnostics;
 using Microsoft.Win32;
+using Microsoft.WindowsAPICodePack.Dialogs;
+using System.Runtime.InteropServices;
 
 using MahApps.Metro.Controls.Dialogs;
-using Microsoft.WindowsAPICodePack.Dialogs;
+using DevExpress.Mvvm;
+
 using ZXEncryption;
+using System.Threading.Tasks;
 
 namespace ZXCryptShared
 {
     public class MainViewModel : INotifyPropertyChanged, IDataErrorInfo
     {
+        [DllImport("shlwapi.dll", CharSet = CharSet.Auto)]
+        static extern bool PathCompactPathEx([Out] StringBuilder pszOut, string szPath, int cchMax, int dwFlags);
+
+        private const string _encryptedFileExt = ".pxx";
+        private const int _shortFilePathLength = 64;
+
+        private IDialogCoordinator _dialogCoordinator;
+
         public MainViewModel()
         {
         }
-
-        private const string _encryptedFileExt = ".pxx";
-        private IDialogCoordinator _dialogCoordinator;
 
         // Constructor
         public MainViewModel(IDialogCoordinator instance)
@@ -186,6 +195,20 @@ namespace ZXCryptShared
             }
         }
 
+        private string _currentProcessingFile;
+        public string CurrentProcessingFile
+        {
+            get { return _currentProcessingFile; }
+            set
+            {
+                if (!Equals(value, _currentProcessingFile))
+                {
+                    _currentProcessingFile = value;
+                    RaisePropertyChanged("CurrentProcessingFile");
+                }
+            }
+        }
+
         #endregion
 
         #region INotifyPropertyChanged methods
@@ -226,33 +249,10 @@ namespace ZXCryptShared
 
         #endregion
 
-        #region Event handles
+        #region Simple Commands
 
-        private ICommand _textBtnCmdGenerateKey;
-        public ICommand TextBtnCmdGenerateKey => this._textBtnCmdGenerateKey ?? (this._textBtnCmdGenerateKey = new SimpleCommand
-        {
-            CanExecuteDelegate = x => true,
-            ExecuteDelegate = async x =>
-            {
-                try
-                {
-                    using (SymmetricAlgorithm algorithm = CreateAlgorithm(typeof(AesCryptoServiceProvider)))
-                    {
-                        algorithm.GenerateKey();
-                        byte[] generatedKey = algorithm.Key;
-                        EncryptionKey = Utility.ByteArrayToHexString(generatedKey);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (_dialogCoordinator != null)
-                        await _dialogCoordinator.ShowMessageAsync(this, "Exception!", ex.Message);
-                }
-            }
-        });
-
-        private ICommand _textBtnCmdSelectKeyFile;
-        public ICommand TextBtnCmdSelectKeyFile => this._textBtnCmdSelectKeyFile ?? (this._textBtnCmdSelectKeyFile = new SimpleCommand
+        private ICommand _CmdSelectKeyFile;
+        public ICommand CmdSelectKeyFile => this._CmdSelectKeyFile ?? (this._CmdSelectKeyFile = new SimpleCommand
         {
             CanExecuteDelegate = x => true,
             ExecuteDelegate = async x =>
@@ -279,8 +279,8 @@ namespace ZXCryptShared
             }
         });
 
-        private ICommand _btnCmdSaveKeyFile;
-        public ICommand BtnCmdSaveKeyFile => _btnCmdSaveKeyFile ?? (_btnCmdSaveKeyFile = new SimpleCommand
+        private ICommand _CmdSaveKeyFile;
+        public ICommand CmdSaveKeyFile => _CmdSaveKeyFile ?? (_CmdSaveKeyFile = new SimpleCommand
         {
             CanExecuteDelegate = x =>
             {
@@ -320,174 +320,8 @@ namespace ZXCryptShared
             }
         });
 
-        private ICommand _pwbCmdPassword1Changed;
-        public ICommand PwbCmdPassword1Changed => _pwbCmdPassword1Changed ?? (_pwbCmdPassword1Changed = new SimpleCommand
-        {
-            CanExecuteDelegate = x => true,
-            ExecuteDelegate =  x =>
-            {
-                if (x != null && x is PasswordBox)
-                {
-                    Password1 = ((PasswordBox)x).SecurePassword;
-                }
-            }
-        });
-
-        private ICommand _pwbCmdPassword2Changed;
-        public ICommand PwbCmdPassword2Changed => _pwbCmdPassword2Changed ?? (_pwbCmdPassword2Changed = new SimpleCommand
-        {
-            CanExecuteDelegate = x => true,
-            ExecuteDelegate = x =>
-            {
-                if (x != null && x is PasswordBox)
-                {
-                    Password2 = ((PasswordBox)x).SecurePassword;
-                }
-            }
-        });
-
-        private ICommand _btnCmdOpenEncDecFile;
-        public ICommand BtnCmdOpenEncDecFile
-        {
-            get
-            {
-                return this._btnCmdOpenEncDecFile ?? (this._btnCmdOpenEncDecFile = new SimpleCommand
-                {
-                    CanExecuteDelegate = x =>
-                    {
-                        if (Password1 == null || Password1.Length <= 0)
-                            return false;
-
-                        if (Mode == EncryptionMode.Encrypt && (Password2 == null || Password2.Length <= 0))
-                            return false;
-
-                        return true;
-                    },
-
-                    ExecuteDelegate = async x =>
-                    {
-                        byte[] passcode = null;
-                        byte[] key = null;
-                        try
-                        {
-                            if (Mode == EncryptionMode.Encrypt)
-                            {
-                                if (!CompareSecureString(Password1, Password2))
-                                {
-                                    await _dialogCoordinator.ShowMessageAsync(this, title: "Password mismatch", message: "Please try again.");
-                                    return;
-                                }
-                            }
-
-                            using (SecureStringWrapper wrapper = new SecureStringWrapper(Password1))
-                            {
-                                if (!String.IsNullOrWhiteSpace(KeyFile))
-                                {
-                                    key = GetEncryptionKey(KeyFile);
-                                }
-
-                                //string pwdStr = wrapper.ClearText;
-                                //byte[] pwdBytes = wrapper.ByteArray;
-
-                                passcode = MergeBytes(wrapper.ByteArray, key);
-                            }
-
-                            // open/encrypt/decrypt file
-                            foreach (string file in FileList)
-                            {
-                                if (Mode == EncryptionMode.Encrypt)
-                                {
-                                    EncryptFileOrFolder(file, passcode);
-                                }
-                                else if (Mode == EncryptionMode.Decrypt)
-                                {
-                                    DecryptFileOrFolder(file, passcode);
-                                }
-                                else if (Mode == EncryptionMode.Open)
-                                {
-                                    // check file extension
-                                    if (String.Compare(Path.GetExtension(file), _encryptedFileExt, StringComparison.CurrentCultureIgnoreCase) != 0)
-                                        break;
-
-                                    string tmpFolder = Path.GetTempPath() + "zxcrypt\\";
-                                    tmpFolder += Path.GetRandomFileName().Replace(".", String.Empty);
-                                    string outfile = Path.Combine(tmpFolder, Path.GetFileNameWithoutExtension(file));
-                                    try
-                                    {
-                                        IZXCryptor cryptor = new ZXCryptor();
-                                        cryptor.DecryptFile(file, outfile, passcode);
-
-                                        // open file
-                                        Process.Start(outfile);
-
-                                        // launch ZXCryptMon, which is one instance app,  to clean up the temp files once the above process close
-                                        string dllPath = new Uri(Assembly.GetExecutingAssembly().CodeBase).LocalPath;
-                                        string appFullPath = Path.GetDirectoryName(dllPath) + "\\ZXCryptMon.exe";
-                                        Process.Start(appFullPath);
-
-                                        // for open, we will handle only one file
-                                        break;
-                                    }
-                                    catch
-                                    {
-                                        Directory.Delete(tmpFolder, true);
-                                        throw;
-                                    }
-                                }
-                            }
-
-                            // clear password and key
-                            if (passcode != null)
-                            {
-                                for (int i = 0; i < passcode.Length; i++)
-                                    passcode[i] = 0;
-                            }
-                            if (key != null)
-                            {
-                                for (int i = 0; i < key.Length; i++)
-                                    key[i] = 0;
-                            }
-
-                            // everything is good, so close the window
-                            CloseWindow = true;
-                        }
-                        catch (Exception ex)
-                        {
-                            // clear password and key
-                            if (passcode != null)
-                            {
-                                for (int i = 0; i < passcode.Length; i++)
-                                    passcode[i] = 0;
-                            }
-                            if (key != null)
-                            {
-                                for (int i = 0; i < key.Length; i++)
-                                    key[i] = 0;
-                            }
-
-                            if (_dialogCoordinator != null)
-                                await _dialogCoordinator.ShowMessageAsync(this, title: "Exception!", message: ex.Message);
-                        }
-                    }
-                });
-            }
-        }
-
-        private ICommand _textCmdInputFileChanged;
-        public ICommand TextCmdInputFileChanged => _textCmdInputFileChanged ?? (_textCmdInputFileChanged = new SimpleCommand
-        {
-            CanExecuteDelegate = x => true,
-            ExecuteDelegate = x =>
-            {
-                if (!Equals(Path.GetExtension(InputFile), _encryptedFileExt))
-                    IsEncryption = true;
-                else
-                    IsEncryption = false;
-            }
-        });
-
-        private ICommand _textBtnCmdSelectInputFile;
-        public ICommand TextBtnCmdSelectInputFile => this._textBtnCmdSelectInputFile ?? (this._textBtnCmdSelectInputFile = new SimpleCommand
+        private ICommand _CmdSelectInputFile;
+        public ICommand CmdSelectInputFile => _CmdSelectInputFile ?? (_CmdSelectInputFile = new SimpleCommand
         {
             CanExecuteDelegate = x => true,
             ExecuteDelegate = async x =>
@@ -515,8 +349,8 @@ namespace ZXCryptShared
             }
         });
 
-        private ICommand _textBtnCmdSelectOutputDir;
-        public ICommand TextBtnCmdSelectOutputDir => _textBtnCmdSelectOutputDir ?? (_textBtnCmdSelectOutputDir = new SimpleCommand
+        private ICommand _CmdSelectOutputDir;
+        public ICommand CmdSelectOutputDir => _CmdSelectOutputDir ?? (_CmdSelectOutputDir = new SimpleCommand
         {
             CanExecuteDelegate = x => true,
             ExecuteDelegate = async x =>
@@ -552,130 +386,372 @@ namespace ZXCryptShared
             }
         });
 
-        private ICommand _btnCmdCryptFile;
-        public ICommand BtnCmdCryptFile => _btnCmdCryptFile ?? (_btnCmdCryptFile = new SimpleCommand
+        #endregion
+
+        #region Asynchronous Commands
+
+        /// <summary>
+        /// Command for open/encrypt/decrypt file(s)
+        /// </summary>
+        private AsyncCommand<object> _asyncCmdOpenEncDecFile;
+        public AsyncCommand<object> CmdOpenEncDecFile
         {
-            CanExecuteDelegate = x =>
+            get
             {
-                if (String.IsNullOrWhiteSpace(InputFile))
-                    return false;
+                return _asyncCmdOpenEncDecFile ?? (_asyncCmdOpenEncDecFile = new AsyncCommand<object>(OpenEncDecFile, CanOpenEncDecFile, true));
+            }
+        }
 
-                if (String.IsNullOrWhiteSpace(OutputDir))
-                    return false;
+        private bool CanOpenEncDecFile(object arg)
+        {
+            if (Password1 == null || Password1.Length <= 0)
+                return false;
 
-                if (Password1 == null || Password1.Length <= 0)
-                    return false;
+            if (Mode == EncryptionMode.Encrypt && (Password2 == null || Password2.Length <= 0))
+                return false;
 
-                if (IsEncryption && (Password2 == null || Password2.Length <= 0))
-                    return false;
+            return true;
+        }
 
-                return true;
-            },
+        private Task OpenEncDecFile(object arg)
+        {
+            return Task.Factory.StartNew(OpenEncDecFileCore, arg);
+        }
 
-            ExecuteDelegate = async x =>
+        private async void OpenEncDecFileCore(object arg)
+        {
+            byte[] passcode = null;
+            byte[] key = null;
+            try
             {
-                byte[] passcode = null;
-                byte[] key = null;
+                if (Mode == EncryptionMode.Encrypt)
+                {
+                    if (!CompareSecureString(Password1, Password2))
+                    {
+                        await _dialogCoordinator.ShowMessageAsync(this, title: "Password mismatch", message: "Please try again.");
+                        return;
+                    }
+                }
+
+                using (SecureStringWrapper wrapper = new SecureStringWrapper(Password1))
+                {
+                    if (!String.IsNullOrWhiteSpace(KeyFile))
+                    {
+                        key = GetEncryptionKey(KeyFile);
+                    }
+
+                    //string pwdStr = wrapper.ClearText;
+                    //byte[] pwdBytes = wrapper.ByteArray;
+
+                    passcode = MergeBytes(wrapper.ByteArray, key);
+                }
+
+                // open/encrypt/decrypt file
+                foreach (string file in FileList)
+                {
+                    if (Mode == EncryptionMode.Encrypt)
+                    {
+                        EncryptFileOrFolder(file, passcode);
+                    }
+                    else if (Mode == EncryptionMode.Decrypt)
+                    {
+                        DecryptFileOrFolder(file, passcode);
+                    }
+                    else if (Mode == EncryptionMode.Open)
+                    {
+                        // check file extension
+                        if (String.Compare(Path.GetExtension(file), _encryptedFileExt, StringComparison.CurrentCultureIgnoreCase) != 0)
+                            break;
+
+                        string tmpFolder = Path.GetTempPath() + "zxcrypt\\";
+                        tmpFolder += Path.GetRandomFileName().Replace(".", String.Empty);
+                        string outfile = Path.Combine(tmpFolder, Path.GetFileNameWithoutExtension(file));
+                        try
+                        {
+                            IZXCryptor cryptor = new ZXCryptor();
+                            cryptor.DecryptFile(file, outfile, passcode);
+
+                            // open file
+                            Process.Start(outfile);
+
+                            // launch ZXCryptMon, which is one instance app,  to clean up the temp files once the above process close
+                            string dllPath = new Uri(Assembly.GetExecutingAssembly().CodeBase).LocalPath;
+                            string appFullPath = Path.GetDirectoryName(dllPath) + "\\ZXCryptMon.exe";
+                            Process.Start(appFullPath);
+
+                            // for open, we will handle only one file
+                            break;
+                        }
+                        catch
+                        {
+                            Directory.Delete(tmpFolder, true);
+                            throw;
+                        }
+                    }
+                }
+
+                // clear password and key
+                if (passcode != null)
+                {
+                    for (int i = 0; i < passcode.Length; i++)
+                        passcode[i] = 0;
+                }
+                if (key != null)
+                {
+                    for (int i = 0; i < key.Length; i++)
+                        key[i] = 0;
+                }
+
+                // everything is good, so close the window
+                CloseWindow = true;
+            }
+            catch (Exception ex)
+            {
+                // clear password and key
+                if (passcode != null)
+                {
+                    for (int i = 0; i < passcode.Length; i++)
+                        passcode[i] = 0;
+                }
+                if (key != null)
+                {
+                    for (int i = 0; i < key.Length; i++)
+                        key[i] = 0;
+                }
+
+                if (_dialogCoordinator != null)
+                    await _dialogCoordinator.ShowMessageAsync(this, title: "Exception!", message: ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Command for generating key
+        /// </summary>
+        private AsyncCommand<object> _asyncCmdGenerateKey;
+        public AsyncCommand<object> CmdGenerateKey => this._asyncCmdGenerateKey ?? (this._asyncCmdGenerateKey = new AsyncCommand<object>(GenerateKey, CanGenerateKey, true));
+
+        private bool CanGenerateKey(object arg)
+        {
+            return true;
+        }
+
+        private Task GenerateKey(object arg)
+        {
+            return Task.Factory.StartNew(async x =>
+            {
                 try
                 {
-                    if (!File.Exists(InputFile))
+                    using (SymmetricAlgorithm algorithm = CreateAlgorithm(typeof(AesCryptoServiceProvider)))
                     {
-                        await _dialogCoordinator.ShowMessageAsync(this, title: "Error", message: "Input file does not exist.");
-                        return;
-                    }
-
-                    if (!Directory.Exists(OutputDir))
-                    {
-                        await _dialogCoordinator.ShowMessageAsync(this, title: "Error", message: "Output directory does not exist.");
-                        return;
-                    }
-
-                    string outputFileName = IsEncryption ? Path.GetFileName(InputFile) + _encryptedFileExt : Path.GetFileNameWithoutExtension(InputFile);
-                    string outputFilePath = Path.Combine(OutputDir, outputFileName);
-                    if (!OverwriteExistingFile && File.Exists(outputFilePath))
-                    {
-                        var dlgSetting = new MetroDialogSettings()
-                        {
-                            AffirmativeButtonText = "Yes",
-                            NegativeButtonText = "No"
-                        };
-
-                        string msg = String.Format("Output file '{0}' already exists. Do you want to overwrite it?", outputFileName);
-                        MessageDialogResult result = await _dialogCoordinator.ShowMessageAsync(this, "Overwrite File",msg, MessageDialogStyle.AffirmativeAndNegative, dlgSetting);
-                        if (result != MessageDialogResult.Affirmative)
-                            return;
-                    }
-
-                    if (IsEncryption)
-                    {
-                        if (!CompareSecureString(Password1, Password2))
-                        {
-                            await _dialogCoordinator.ShowMessageAsync(this, title: "Password mismatch", message: "Please try again.");
-                            return;
-                        }
-                    }
-
-                    using (SecureStringWrapper wrapper = new SecureStringWrapper(Password1))
-                    {
-                        if (!String.IsNullOrWhiteSpace(KeyFile))
-                        {
-                            key = GetEncryptionKey(KeyFile);
-                        }
-
-                        passcode = MergeBytes(wrapper.ByteArray, key);
-                    }
-
-                    // encrypt/decrypt file
-                    IZXCryptor cryptor = new ZXCryptor();
-                    if (IsEncryption)
-                    {
-                        cryptor.EncryptFile(InputFile, outputFilePath, passcode);
-                    }
-                    else
-                    {
-                        cryptor.DecryptFile(InputFile, outputFilePath, passcode);
-                    }
-
-                    // clear password and key
-                    if (passcode != null)
-                    {
-                        for (int i = 0; i < passcode.Length; i++)
-                            passcode[i] = 0;
-                    }
-                    if (key != null)
-                    {
-                        for (int i = 0; i < key.Length; i++)
-                            key[i] = 0;
-                    }
-
-                    if (IsEncryption)
-                    {
-                        await _dialogCoordinator.ShowMessageAsync(this, title: "File encrypted", message: "Output file: " + outputFilePath);
-                    }
-                    else
-                    {
-                        await _dialogCoordinator.ShowMessageAsync(this, title: "File decrypted", message: "Output file: " + outputFilePath);
+                        algorithm.GenerateKey();
+                        byte[] generatedKey = algorithm.Key;
+                        EncryptionKey = Utility.ByteArrayToHexString(generatedKey);
                     }
                 }
                 catch (Exception ex)
                 {
-                    // clear password and key
-                    if (passcode != null)
+                    if (_dialogCoordinator != null)
+                        await _dialogCoordinator.ShowMessageAsync(this, "Exception!", ex.Message);
+                }
+            }, arg);
+        }
+
+        private AsyncCommand<object> _asyncCmdPassword1Changed;
+        public AsyncCommand<object> CmdPassword1Changed => _asyncCmdPassword1Changed ?? (_asyncCmdPassword1Changed = new AsyncCommand<object>(Password1Changed, CanPassword1Changed, true));
+
+        private bool CanPassword1Changed(object arg)
+        {
+            return true;
+        }
+
+        private Task Password1Changed(object arg)
+        {
+            return Task.Factory.StartNew(x =>
+            {
+                if (x != null && x is PasswordBox)
+                {
+                    Password1 = ((PasswordBox)x).SecurePassword;
+                }
+
+            }, arg);
+        }
+
+        /// <summary>
+        /// Command for password2 being changed
+        /// </summary>
+        private AsyncCommand<object> _asyncCmdPassword2Changed;
+        public AsyncCommand<object> CmdPassword2Changed => _asyncCmdPassword2Changed ?? (_asyncCmdPassword2Changed = new AsyncCommand<object>(Password2Changed, CanPassword2Changed, true));
+
+        private bool CanPassword2Changed(object arg)
+        {
+            return true;
+        }
+
+        private Task Password2Changed(object arg)
+        {
+            return Task.Factory.StartNew(x =>
+            {
+                if (x != null && x is PasswordBox)
+                {
+                    Password2 = ((PasswordBox)x).SecurePassword;
+                }
+
+            }, arg);
+        }
+
+        /// <summary>
+        /// Command for input file being changed
+        /// </summary>
+        private AsyncCommand<object> _asyncCmdInputFileChanged;
+        public AsyncCommand<object> CmdInputFileChanged => _asyncCmdInputFileChanged ?? (_asyncCmdInputFileChanged = new AsyncCommand<object>(InputFileChanged, CanInputFileChanged, true));
+
+        private bool CanInputFileChanged(object arg)
+        {
+            return true;
+        }
+
+        private Task InputFileChanged(object arg)
+        {
+            return Task.Factory.StartNew(x =>
+            {
+                if (!Equals(Path.GetExtension(InputFile), _encryptedFileExt))
+                    IsEncryption = true;
+                else
+                    IsEncryption = false;
+            }, arg);
+        }
+
+        /// <summary>
+        /// Command to encrypt/decrypt file
+        /// </summary>
+        private AsyncCommand<object> _asyncCmdCryptFile;
+        public AsyncCommand<object> CmdCryptFile => _asyncCmdCryptFile ?? (_asyncCmdCryptFile = new AsyncCommand<object>(CryptFile, CanCryptFile, true));
+
+        private bool CanCryptFile(object arg)
+        {
+            if (String.IsNullOrWhiteSpace(InputFile))
+                return false;
+
+            if (String.IsNullOrWhiteSpace(OutputDir))
+                return false;
+
+            if (Password1 == null || Password1.Length <= 0)
+                return false;
+
+            if (IsEncryption && (Password2 == null || Password2.Length <= 0))
+                return false;
+
+            return true;
+        }
+
+        private Task CryptFile(object arg)
+        {
+            return Task.Factory.StartNew(CryptFileCore, arg);
+        }
+
+        private async void CryptFileCore(object arg)
+        {
+            byte[] passcode = null;
+            byte[] key = null;
+            try
+            {
+                if (!File.Exists(InputFile))
+                {
+                    await _dialogCoordinator.ShowMessageAsync(this, title: "Error", message: "Input file does not exist.");
+                    return;
+                }
+
+                if (!Directory.Exists(OutputDir))
+                {
+                    await _dialogCoordinator.ShowMessageAsync(this, title: "Error", message: "Output directory does not exist.");
+                    return;
+                }
+
+                string outputFileName = IsEncryption ? Path.GetFileName(InputFile) + _encryptedFileExt : Path.GetFileNameWithoutExtension(InputFile);
+                string outputFilePath = Path.Combine(OutputDir, outputFileName);
+                if (!OverwriteExistingFile && File.Exists(outputFilePath))
+                {
+                    var dlgSetting = new MetroDialogSettings()
                     {
-                        for (int i = 0; i < passcode.Length; i++)
-                            passcode[i] = 0;
+                        AffirmativeButtonText = "Yes",
+                        NegativeButtonText = "No"
+                    };
+
+                    string msg = String.Format("Output file '{0}' already exists. Do you want to overwrite it?", outputFileName);
+                    MessageDialogResult result = await _dialogCoordinator.ShowMessageAsync(this, "Overwrite File", msg, MessageDialogStyle.AffirmativeAndNegative, dlgSetting);
+                    if (result != MessageDialogResult.Affirmative)
+                        return;
+                }
+
+                if (IsEncryption)
+                {
+                    if (!CompareSecureString(Password1, Password2))
+                    {
+                        await _dialogCoordinator.ShowMessageAsync(this, title: "Password mismatch", message: "Please try again.");
+                        return;
                     }
-                    if (key != null)
+                }
+
+                using (SecureStringWrapper wrapper = new SecureStringWrapper(Password1))
+                {
+                    if (!String.IsNullOrWhiteSpace(KeyFile))
                     {
-                        for (int i = 0; i < key.Length; i++)
-                            key[i] = 0;
+                        key = GetEncryptionKey(KeyFile);
                     }
 
-                    if (_dialogCoordinator != null)
-                        await _dialogCoordinator.ShowMessageAsync(this, title: "Exception!", message: ex.Message);
+                    passcode = MergeBytes(wrapper.ByteArray, key);
+                }
+
+                // encrypt/decrypt file
+                IZXCryptor cryptor = new ZXCryptor();
+                if (IsEncryption)
+                {
+                    cryptor.EncryptFile(InputFile, outputFilePath, passcode);
+                }
+                else
+                {
+                    cryptor.DecryptFile(InputFile, outputFilePath, passcode);
+                }
+
+                // clear password and key
+                if (passcode != null)
+                {
+                    for (int i = 0; i < passcode.Length; i++)
+                        passcode[i] = 0;
+                }
+                if (key != null)
+                {
+                    for (int i = 0; i < key.Length; i++)
+                        key[i] = 0;
+                }
+
+                if (IsEncryption)
+                {
+                    await _dialogCoordinator.ShowMessageAsync(this, title: "File encrypted", message: "Output file: " + outputFilePath);
+                }
+                else
+                {
+                    await _dialogCoordinator.ShowMessageAsync(this, title: "File decrypted", message: "Output file: " + outputFilePath);
                 }
             }
-        });
+            catch (Exception ex)
+            {
+                // clear password and key
+                if (passcode != null)
+                {
+                    for (int i = 0; i < passcode.Length; i++)
+                        passcode[i] = 0;
+                }
+                if (key != null)
+                {
+                    for (int i = 0; i < key.Length; i++)
+                        key[i] = 0;
+                }
+
+                if (_dialogCoordinator != null)
+                    await _dialogCoordinator.ShowMessageAsync(this, title: "Exception!", message: ex.Message);
+            }
+        }
 
         #endregion
 
@@ -773,6 +849,9 @@ namespace ZXCryptShared
                 if (String.Compare(fileExt, _encryptedFileExt, StringComparison.CurrentCultureIgnoreCase) == 0)    // skip encrypted files
                    continue;
 
+                // set statusbar text
+                CurrentProcessingFile = PathShortener(file, _shortFilePathLength);
+
                 string outfile = file + _encryptedFileExt;
                 try
                 {
@@ -821,6 +900,9 @@ namespace ZXCryptShared
                 if (String.Compare(fileExt, _encryptedFileExt, StringComparison.CurrentCultureIgnoreCase) != 0)    // skip un-encrypted files
                     continue;
 
+                // set statusbar text
+                CurrentProcessingFile = PathShortener(file, _shortFilePathLength);
+
                 string outfile = Path.Combine(Path.GetDirectoryName(file), Path.GetFileNameWithoutExtension(file));
                 try
                 {
@@ -839,6 +921,13 @@ namespace ZXCryptShared
                     File.Delete(file);
                 }
             }
+        }
+
+        private string PathShortener(string path, int length)
+        {
+            StringBuilder sb = new StringBuilder(length + 1);
+            PathCompactPathEx(sb, path, length, 0);
+            return sb.ToString();
         }
 
         #endregion
