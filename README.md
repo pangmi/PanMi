@@ -31,3 +31,5 @@ By default, the encrypted file has an extension of ".pxx". Double-click on a enc
 The following open source projects are used:
 - [SharpShell](https://github.com/dwmkerr/sharpshell)
 - [MahApps.Metro](https://github.com/MahApps/MahApps.Metro)
+- [DevExpress MVVM](https://github.com/DevExpress/DevExpress.Mvvm.Free)
+- [Windows API Code Pack](https://github.com/aybe/Windows-API-Code-Pack-1.1)

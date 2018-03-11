@@ -76,6 +76,9 @@
       <Component Id="Apex.WinForms.dll" Win64="yes" Guid="236F037A-25CA-4F6F-B5F4-5B0DC73722CA">
         <File Id="Apex.WinForms.dll" Source="$(var.ZXCryptApp.TargetDir)Apex.WinForms.dll" KeyPath="yes" />
       </Component>
+      <Component Id="DevExpress.Mvvm.dll" Win64="yes" Guid="A8B80304-3E47-4363-AD25-19C13C79D7FB">
+        <File Id="DevExpress.Mvvm.dll" Source="$(var.ZXCryptApp.TargetDir)DevExpress.Mvvm.dll" KeyPath="yes" />
+      </Component>
       <Component Id="MahApps.Metro.dll" Win64="yes" Guid="7EAA8B22-1663-4B70-B418-2DA887E362BD">
         <File Id="MahApps.Metro.dll" Source="$(var.ZXCryptApp.TargetDir)MahApps.Metro.dll" KeyPath="yes" />
       </Component>

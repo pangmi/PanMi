@@ -10,7 +10,7 @@
     <ProductVersion>3.10</ProductVersion>
     <ProjectGuid>b1dece10-a977-4b2d-b624-c2e1851de7fe</ProjectGuid>
     <SchemaVersion>2.0</SchemaVersion>
-    <OutputName>PanMiSetup-1.0.4</OutputName>
+    <OutputName>PanMiSetup-1.0.5</OutputName>
     <OutputType>Package</OutputType>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
