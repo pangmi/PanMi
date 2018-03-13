@@ -410,6 +410,9 @@ namespace ZXCryptShared
             if (Mode == EncryptionMode.Encrypt && (Password2 == null || Password2.Length <= 0))
                 return false;
 
+            if (_asyncCmdOpenEncDecFile.IsExecuting)
+                return false;
+
             return true;
         }
 
@@ -639,6 +642,9 @@ namespace ZXCryptShared
                 return false;
 
             if (IsEncryption && (Password2 == null || Password2.Length <= 0))
+                return false;
+
+            if (_asyncCmdCryptFile.IsExecuting)
                 return false;
 
             return true;
